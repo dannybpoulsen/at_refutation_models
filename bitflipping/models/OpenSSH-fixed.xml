@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>int password_match = 0;
+const int MAX_FLIPS = @MAX_FLIPS@;
+
+const int escapeChar = 256;
+const int zero = 0;
+
+typedef int[0, 256] byte_t;
+typedef int[0, 8] bit_t;
+
+const int AUTH_SUCCESS = 12300;
+const int AUTH_FAILURE = 10011;
+
+const int pass_length = 5;
+const int permit_empty_passwd = 0;
+const int valid = 1;
+const int force_pwchange = 0;
+const int actx = 0;
+
+int authctx[2] = {valid, force_pwchange};
+int ssh[1] = {actx};
+
+byte_t password[pass_length] = {1, 2, 3, 4, escapeChar};
+
+
+typedef struct{
+    int returnAddr; // 28(sp)
+    int framePtr; // 24(sp)
+    int ssh; // -16(s0)
+    int passPtr; // -20(s0)
+    int ctx; // -24(s0)
+    int ok; // -32(s0)
+    int ret; // -12(s0)
+    int result; // -28(s0)
+    int temp; // -36(s0)
+} memory_t;
+
+
+// registers
+int sp = 0;
+int ra = 0;
+int s0 = 0;
+int a0 = 0;
+int a1 = 0;
+
+
+
+int pwr(int num, int pwr){
+    int res = 1;
+    if(pwr == 0)
+        return res;
+    while(pwr &gt; 0){
+        res = res * num;
+        pwr--;
+    }
+    return res;
+}</declaration>
+	<template>
+		<name x="5" y="5">auth_password</name>
+		<declaration>clock x;
+memory_t memory = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+// ID for accessing registers
+const int id = 0; 
+
+
+void sys_auth_passwd(){
+    if (password_match)
+        a0 = AUTH_SUCCESS;
+    else
+        a0 = 0;
+}
+
+void auth_restrict_session(){
+    // Nothing
+    a0 = a0;
+}
+
+void block0(){
+    sp =  sp - 32;
+    memory.returnAddr = ra;
+    memory.framePtr = s0;
+    s0 = sp + 32;
+    memory.ssh = a0;
+    memory.passPtr = a1;
+    a0 = memory.ssh;
+    a0 = ssh[a0];
+    memory.ctx = a0;
+    a0 = memory.ctx;
+    a0 = authctx[a0];
+    memory.ok = a0;
+    a0 = memory.passPtr;
+    a0 = password[a0];
+    
+    // a0 != escapeChar --&gt; L3 else j --&gt; L1 
+}
+
+// L1
+void block1(){
+    a0 = permit_empty_passwd; // lines 19-20
+    
+    // a0 != 0 --&gt; L3 else j --&gt; L2
+}
+
+// L2
+void block2(){
+    a0 = AUTH_FAILURE; // lines 24-25
+    memory.ret = a0;
+    
+    // j --&gt; L10
+}
+
+// L3
+void block3(){
+    a0 = memory.ssh;
+    a1 = memory.passPtr;
+    
+    sys_auth_passwd();
+    memory.result = a0;
+    a0 = memory.ctx;
+    a0 = authctx[a0 + 1];
+    // a0 == 0 --&gt; L5 else j --&gt; L4
+}
+
+
+// L4
+void block4(){
+    a0 = memory.ssh;
+    auth_restrict_session();
+    
+    // j --&gt; L5
+}
+
+
+// L5
+void block5(){
+    a0 = memory.ok;
+    
+    // a0 != 0 --&gt; L7 else j --&gt; L6
+}
+
+
+// L6
+void block6(){
+    a0 = AUTH_FAILURE; // lines 46-47
+    memory.ret = a0;
+
+    // j --&gt; L10
+}
+
+// L7
+void block7(){
+    a0 = memory.result;
+    a1 = AUTH_SUCCESS; // lines 52-53
+
+    // a1 != a0 --&gt; L9 else j --&gt; L8
+}
+
+
+
+// L8
+void block8(){
+    a0 = AUTH_SUCCESS; // lines 59-60
+    memory.ret = a0; 
+    
+    // j --&gt; L10
+}
+
+// L9
+void block9(){
+    a0 = AUTH_FAILURE; // lines 62-63
+    memory.ret = a0;
+
+    // j --&gt; L10
+}
+
+// L10
+void block10(){
+    a0 = memory.ret;
+    ra = memory.returnAddr;
+    s0 = memory.framePtr;
+    sp = sp + 32;
+}
+</declaration>
+		<location id="id0" x="-519" y="-323">
+			<name x="-561" y="-349">L10</name>
+			<label kind="invariant" x="-578" y="-314">x &lt;= 1</label>
+		</location>
+		<location id="id1" x="-1572" y="-59">
+			<name x="-1564" y="-93">MemSegFault</name>
+		</location>
+		<location id="id2" x="-154" y="-255">
+			<name x="-164" y="-289">Auth_Fail</name>
+		</location>
+		<location id="id3" x="-154" y="-408">
+			<name x="-164" y="-442">Auth_Succ</name>
+		</location>
+		<location id="id4" x="-298" y="-323">
+			<committed/>
+		</location>
+		<location id="id5" x="-332" y="-144">
+			<name x="-357" y="-170">L8</name>
+			<label kind="invariant" x="-323" y="-135">x &lt;= 1</label>
+		</location>
+		<location id="id6" x="-697" y="-153">
+			<name x="-723" y="-179">L6</name>
+			<label kind="invariant" x="-765" y="-161">x &lt;= 1</label>
+		</location>
+		<location id="id7" x="-332" y="34">
+			<name x="-323" y="8">L7</name>
+			<label kind="invariant" x="-323" y="42">x &lt;= 1</label>
+		</location>
+		<location id="id8" x="-723" y="34">
+			<urgent/>
+		</location>
+		<location id="id9" x="-995" y="34">
+			<name x="-1020" y="9">L4</name>
+			<label kind="invariant" x="-1063" y="34">x &lt;= 1</label>
+		</location>
+		<location id="id10" x="-816" y="-76">
+			<name x="-842" y="-102">L5</name>
+			<label kind="invariant" x="-850" y="-119">x &lt;= 1</label>
+		</location>
+		<location id="id11" x="-995" y="-76">
+			<urgent/>
+		</location>
+		<location id="id12" x="-1011" y="-322">
+			<name x="-1036" y="-348">L2</name>
+			<label kind="invariant" x="-1003" y="-314">x &lt;= 1</label>
+		</location>
+		<location id="id13" x="-1155" y="-322">
+			<urgent/>
+		</location>
+		<location id="id14" x="-1351" y="-322">
+			<name x="-1377" y="-348">L1</name>
+			<label kind="invariant" x="-1343" y="-314">x &lt;= 1</label>
+		</location>
+		<location id="id15" x="-1155" y="-195">
+			<name x="-1189" y="-220">L3</name>
+			<label kind="invariant" x="-1147" y="-221">x &lt;= 1</label>
+		</location>
+		<location id="id16" x="-1351" y="-195">
+			<urgent/>
+		</location>
+		<location id="id17" x="-1572" y="-195">
+			<label kind="invariant" x="-1564" y="-229">x &lt;= 1</label>
+		</location>
+		<location id="id18" x="-1572" y="-323">
+			<committed/>
+		</location>
+		<location id="id19" x="-519" y="-76">
+			<name x="-544" y="-68">L9</name>
+			<label kind="invariant" x="-587" y="-85">x &lt;= 1</label>
+		</location>
+		<location id="id20" x="-332" y="-76">
+			<urgent/>
+		</location>
+		<init ref="id18"/>
+		<transition id="id21">
+			<source ref="id5"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-408" y="-221">x &gt;= 1</label>
+			<label kind="assignment" x="-408" y="-204">block8(), x = 0</label>
+			<nail x="-332" y="-178"/>
+			<nail x="-417" y="-178"/>
+			<nail x="-417" y="-306"/>
+		</transition>
+		<transition id="id22">
+			<source ref="id0"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-501" y="-357">x &gt;= 1</label>
+			<label kind="assignment" x="-502" y="-340">block10(), x = 0</label>
+		</transition>
+		<transition id="id23">
+			<source ref="id20"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-323" y="-119">a0 == a1</label>
+		</transition>
+		<transition id="id24">
+			<source ref="id20"/>
+			<target ref="id19"/>
+			<label kind="guard" x="-451" y="-102">a0 != a1</label>
+		</transition>
+		<transition id="id25">
+			<source ref="id19"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-646" y="-204">x &gt;= 1</label>
+			<label kind="assignment" x="-646" y="-187">block9(), x = 0</label>
+		</transition>
+		<transition id="id26">
+			<source ref="id17"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-1564" y="-136">a0 &gt; 0 || a1 &gt;= pass_length</label>
+		</transition>
+		<transition id="id27">
+			<source ref="id18"/>
+			<target ref="id17"/>
+			<label kind="select" x="-1564" y="-306">i : int[0, 1]</label>
+			<label kind="assignment" x="-1564" y="-289">password_match = i</label>
+		</transition>
+		<transition id="id28">
+			<source ref="id4"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-273" y="-280">a0 != 12300</label>
+			<nail x="-298" y="-255"/>
+		</transition>
+		<transition id="id29">
+			<source ref="id4"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-273" y="-433">a0 == 12300</label>
+			<nail x="-298" y="-408"/>
+		</transition>
+		<transition id="id30">
+			<source ref="id12"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-977" y="-357">x &gt;= 1</label>
+			<label kind="assignment" x="-977" y="-340">block2(), x = 0</label>
+		</transition>
+		<transition id="id31">
+			<source ref="id7"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-323" y="-34">x &gt;= 1</label>
+			<label kind="assignment" x="-323" y="-17">block7(), x = 0</label>
+		</transition>
+		<transition id="id32">
+			<source ref="id6"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-825" y="-255">x &gt;= 1</label>
+			<label kind="assignment" x="-825" y="-238">block6(), x = 0</label>
+			<nail x="-697" y="-297"/>
+		</transition>
+		<transition id="id33">
+			<source ref="id8"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-680" y="-25">a0 == 0</label>
+			<nail x="-680" y="0"/>
+			<nail x="-612" y="0"/>
+			<nail x="-612" y="-110"/>
+		</transition>
+		<transition id="id34">
+			<source ref="id8"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-519" y="-25">a0 != 0</label>
+		</transition>
+		<transition id="id35">
+			<source ref="id10"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-799" y="-110">x &gt;= 1</label>
+			<label kind="assignment" x="-799" y="-93">block5(), x = 0</label>
+			<nail x="-723" y="-76"/>
+		</transition>
+		<transition id="id36">
+			<source ref="id9"/>
+			<target ref="id10"/>
+			<label kind="assignment" x="-961" y="34">block4(), x = 0</label>
+			<nail x="-816" y="34"/>
+		</transition>
+		<transition id="id37">
+			<source ref="id11"/>
+			<target ref="id9"/>
+			<label kind="guard" x="-986" y="-34">a0 != zero</label>
+		</transition>
+		<transition id="id38">
+			<source ref="id11"/>
+			<target ref="id10"/>
+			<label kind="guard" x="-952" y="-76">a0 == zero</label>
+		</transition>
+		<transition id="id39">
+			<source ref="id15"/>
+			<target ref="id11"/>
+			<label kind="guard" x="-1130" y="-195">x &gt;= 1</label>
+			<label kind="assignment" x="-1130" y="-178">block3(), x = 0</label>
+			<nail x="-995" y="-195"/>
+		</transition>
+		<transition id="id40">
+			<source ref="id13"/>
+			<target ref="id12"/>
+			<label kind="guard" x="-1130" y="-348">a0 == zero</label>
+		</transition>
+		<transition id="id41">
+			<source ref="id13"/>
+			<target ref="id15"/>
+			<label kind="guard" x="-1147" y="-271">a0 != zero</label>
+		</transition>
+		<transition id="id42">
+			<source ref="id14"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-1326" y="-357">x &gt;= 1</label>
+			<label kind="assignment" x="-1326" y="-340">block1(), x = 0</label>
+		</transition>
+		<transition id="id43">
+			<source ref="id16"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-1342" y="-271">a0 == escapeChar</label>
+		</transition>
+		<transition id="id44">
+			<source ref="id16"/>
+			<target ref="id15"/>
+			<label kind="guard" x="-1317" y="-195">a0 != escapeChar</label>
+		</transition>
+		<transition id="id45">
+			<source ref="id17"/>
+			<target ref="id16"/>
+			<label kind="guard" x="-1564" y="-178">(x &gt;= 1 &amp;&amp; a0 == 0) &amp;&amp; a1 &lt; pass_length</label>
+			<label kind="assignment" x="-1555" y="-195">block0(), x = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>Attacker</name>
+		<declaration>clock x;
+int flips = MAX_FLIPS;
+const int id = 0;
+bit_t currBit;
+</declaration>
+		<location id="id46" x="-357" y="-25">
+			<name x="-399" y="-51">Done</name>
+		</location>
+		<location id="id47" x="178" y="-153">
+			<name x="186" y="-178">Flipping</name>
+			<committed/>
+		</location>
+		<location id="id48" x="-204" y="-25">
+			<name x="-246" y="-51">Idle</name>
+			<label kind="invariant" x="-272" y="-17">x &lt;= 1</label>
+		</location>
+		<init ref="id48"/>
+		<transition id="id49">
+			<source ref="id48"/>
+			<target ref="id48"/>
+			<label kind="guard" x="-170" y="119">x &gt;= 1</label>
+			<label kind="assignment" x="-170" y="136">x = 0</label>
+			<nail x="-204" y="153"/>
+			<nail x="-51" y="153"/>
+		</transition>
+		<transition id="id50">
+			<source ref="id48"/>
+			<target ref="id46"/>
+		</transition>
+		<transition id="id51">
+			<source ref="id47"/>
+			<target ref="id48"/>
+			<label kind="assignment" x="-153" y="-204">a1 = a1 ^ pwr(2, currBit)</label>
+			<nail x="178" y="-187"/>
+			<nail x="-204" y="-187"/>
+		</transition>
+		<transition id="id52">
+			<source ref="id47"/>
+			<target ref="id48"/>
+			<label kind="assignment" x="-153" y="-170">a0 = a0 ^ pwr(2, currBit)</label>
+			<nail x="-204" y="-153"/>
+		</transition>
+		<transition id="id53">
+			<source ref="id48"/>
+			<target ref="id47"/>
+			<label kind="select" x="-186" y="-76">bit : bit_t</label>
+			<label kind="guard" x="-186" y="-59">flips &gt; 0 &amp;&amp; x &gt;= 1</label>
+			<label kind="assignment" x="-187" y="-42">x = 0, currBit = bit, flips = flips - 1</label>
+			<nail x="178" y="-25"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+// List one or more processes to be composed into a system.
+system auth_password, Attacker;
+</system>
+	<queries>
+		<option key="--diagnostic" value="0"/>
+		<query>
+			<formula>A[] auth_password.Auth_Succ imply password_match == 1</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2024-04-11 15:00:44 +0200">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>A[] auth_password.Auth_Fail imply password_match == 0</formula>
+			<comment/>
+			<result outcome="failure" type="quality" timestamp="2024-04-11 15:00:50 +0200">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+	</queries>
+</nta>
