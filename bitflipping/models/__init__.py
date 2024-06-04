@@ -1,8 +1,9 @@
 import os
-
+import libs
 
 class SUDO_Model:
     def __init__(self):
+        self._libpath  =libs.getlib ()
         base_model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"SUDO.xml")
         with open(base_model_path,'r') as ff:
             self._base_model_text = ff.read ()
@@ -30,7 +31,7 @@ class SUDO_Model:
         self._max_flips = flips
         
     def model_text (self):
-        return self._base_model_text.replace("@SIZE@",str(len(self._user_pass))).replace("@USER_PASS@",f"{{ {','.join ([str(b) for b in self._user_pass]) } }}").replace("@STORED_PASS@",f"{{ {','.join ([str(b) for b in self._stored_pass]) } }}").replace("@MAX_FLIPS@",str(self._max_flips)).replace ("@VERSION@",str(self._version))
+        return self._base_model_text.replace("@SIZE@",str(len(self._user_pass))).replace("@USER_PASS@",f"{{ {','.join ([str(b) for b in self._user_pass]) } }}").replace("@STORED_PASS@",f"{{ {','.join ([str(b) for b in self._stored_pass]) } }}").replace("@MAX_FLIPS@",str(self._max_flips)).replace ("@VERSION@",str(self._version)).replace("@LIBPATH@",self._libpath)
 
 
 

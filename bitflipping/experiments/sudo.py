@@ -84,21 +84,18 @@ class Experiments:
                 ff.write (tabulate.tabulate (rows,
                                              headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
                           )
-            
 
     def runHammingDistFun(self):
         loc = self._locator.sublocator ("Hamming")
         sudo = bitflipping.models.SUDO_Model()
         user_pass = "1245".encode('ascii')
-        rows = []
-
+        
         stored_pass = [ hamming_dist_build (user_pass,hamm) for hamm in [2,4,8,10,12]]
                 
         with bitflipping.locator.Progresser() as prog:
             for flips in range(0,6):
-                x = []
-                old = []
-                new = []
+                subloc = loc.sublocator (f"Flips_{flips}")
+                rows = []
                 for i,stored in enumerate(stored_pass):
                     prog.message (f"HammingDist Fun: {flips} - {i} (flips - passwordnumber)")  
                     sudo.set_user_password (user_pass+b'\0')
@@ -106,39 +103,51 @@ class Experiments:
                     sudo.set_max_flips (flips)
 
                     sudo.set_old_version ()
-                    old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
-
+                    
+                    
+                    old_estim,  old_flip_data= self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)",postprocess = bitflipping.uppaal.uppaal.FlipAndEstim)
+                    
                     sudo.set_fixed_version ()
-                    new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
+                    new_estim, new_flip_data= self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)",postprocess = bitflipping.uppaal.uppaal.FlipAndEstim)
 
                     old_data = ([1]*old_estim.getSatisRuns())+([0]*old_estim.getNSatisRuns())
                     new_data = ([1]*new_estim.getSatisRuns())+([0]*new_estim.getNSatisRuns())
-
-                    x.append (hamming(user_pass,stored))
-                    old.append (old_estim.getSatisRuns ())
-                    new.append (new_estim.getSatisRuns ())
-
-
+                    
+                    
+                    with open(subloc.makeFilePath(f"Hamming_{hamming(user_pass,stored)}_old"),'w') as ff:
+                        ff.write (str(old_flip_data.res_data()))
+                    with open(subloc.makeFilePath(f"Hamming_{hamming(user_pass,stored)}_new"),'w') as ff:
+                        ff.write (str(new_flip_data.res_data()))
+                    
 
                     test = scipy.stats.ttest_ind(a=old_data,b=new_data,equal_var=False)
 
                     rows.append ([flips,user_pass,stored,hamming(user_pass,stored),old_estim.getSatisRuns(),new_estim.getSatisRuns (),test.pvalue])
-
-                fig = plt.figure ()
-                ax = fig.subplots ()
-                ax.plot (x,old,label='Old')
-                ax.plot (x,new,label='Fixed')
-
-                ax.set_xlabel ("Hamming")
-                ax.set_ylabel ("Succesfull  Attacks")
-                ax.legend ()
-                fig.savefig (loc.makeFilePath (f"{flips}.png"))
-            with loc.makeFile ("table.txt") as ff: 
-                ff.write (tabulate.tabulate (rows,
-                                             headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
-                                  )
                 
-            
+                with subloc.makeFile ("table.txt") as ff: 
+                    ff.write (tabulate.tabulate (rows,
+                                                 headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
+                              )
+
+                
     def run (self):
-        self.runTobias ()
+        #self.runTobias ()
         self.runHammingDistFun() 
+
+
+class GUI:
+    def __init__(self,uppaal):
+        self._uppaal = uppaal
+    
+    def runGUI (self,user_pass = "1234".encode('ascii'),stored_pass = "2345".encode('ascii'),max_flips = 5,fixed_version=True):
+        sudo = bitflipping.models.SUDO_Model()
+        sudo.set_user_password (user_pass+b'\0')
+        sudo.set_stored_password (stored_pass+b'\0')
+        sudo.set_max_flips (max_flips)
+        if fixed_version:
+            sudo.set_fixed_version ()
+        else:
+            sudo.set_old_version ()
+        
+        self._uppaal.openGUI (sudo)
+    
