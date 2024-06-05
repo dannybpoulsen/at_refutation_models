@@ -83,8 +83,11 @@ class Experiments:
             with loc.makeFile ("table.txt") as ff: 
                 ff.write (tabulate.tabulate (rows,
                                              headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
-                          )
+            )
 
+            with loc.makeFile ("table.tex") as ff: 
+                self._output_tex_table(ff,rows)
+            
     def runHammingDistFun(self):
         loc = self._locator.sublocator ("Hamming")
         sudo = bitflipping.models.SUDO_Model()
@@ -128,10 +131,37 @@ class Experiments:
                     ff.write (tabulate.tabulate (rows,
                                                  headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
                               )
-
+                with loc.makeFile ("table.tex") as ff: 
+                    ff.write ("""\\begin{tabular}{r | l | l | r | r | r | r}                \\hline
+                \\uppExpr{MAX_FLIPS} & \\uppExpr{user_pass}& \\uppExpr{stored_pass}& Hamming & \\uppExpr{new_ver == 0} & \\uppExpr{new_ver == 1} & PValue \\\\ \\hline
+                """)
+                    for r in rows:
+                        ff.write (f"{r[0]} & {r[1]} & {r[2]} & {r[3]} & {r[4]} & {r[5]} &  {r[6]:.2E} \\ \\hline")
+                    ff.write ("""\\end{tabular}
+\hline
+                """)
+                #ff.write (tabulate.tabulate (rows,
+                #                             headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
+            
+    def _output_tex_table(self,ff,rows):
+        ff.write ("""\\begin{tabular}{r | l | l | r | r | r | r}                \\toprule
+                \\uppExpr{MAX_FLIPS} & \\uppExpr{user_pass}& \\uppExpr{stored_pass}& Hamming & \\uppExpr{new_ver == 0} & \\uppExpr{new_ver == 1} & PValue \\\\ \\midrule
+                
+                """)
+        old = -1
+        for r in rows:
+            if old > r[0]:
+                ff.write ("\\midrule")
+            
+            ff.write (f"{r[0]} & {r[1].decode('ascii')} & {r[2].decode('ascii')} & {r[3]} & {r[4]} & {r[5]} &  {r[6]:.2E} \\\\ ")
+            ff.write ("\n")
+            old = r[0]
+        ff.write ("\\bottomrule \\end{tabular}")
+            
+        
                 
     def run (self):
-        #self.runTobias ()
+        self.runTobias ()
         self.runHammingDistFun() 
 
 

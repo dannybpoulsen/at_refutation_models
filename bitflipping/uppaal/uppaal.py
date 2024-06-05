@@ -6,6 +6,8 @@ import os
 import sys
 import multiprocessing
 import pyparsing as pp
+import random
+import datetime
 
 
 
@@ -94,12 +96,10 @@ def calc_live_register ():
         incoming = set()
         incoming = incoming.union (*[c._live for c in cur._succ])
         incoming = (incoming - cur._writes) | cur._reads
-        print (incoming)
         
         if incoming  != cur._live:
             cur._live = incoming
             for s in cur._pred:
-                print (s._name)
                 waiting.append(s)
     return {c._name : c._live for c in all}
 
@@ -151,7 +151,7 @@ def parseEstim (tmpdir,stdout):
         return EstimResult ((prob[2],prob[3]),prob[4],prob[0],prob[1])
     
     else:
-        return EstimResult ((0,0),0,0,0,None)
+        return EstimResult ((0,0),0,0,0)
     
 def FlipAndEstim (tmpdir,stdout):
     estim  = parseEstim (tmpdir,stdout)
@@ -165,8 +165,10 @@ def justPrint  (tmpdir,stdout):
 
 
 class Uppaal:
-    def __init__ (self,uppaalinst):
+    def __init__ (self,uppaalinst,seed = datetime.datetime.now().timestamp()):
         self._uppaalpath = os.path.abspath (uppaalinst)
+        self._random = random.Random (seed)
+
         
     def __setupDirectory (self,tmpdir,modeltext):
         modelexec = os.path.join (tmpdir,"model.xml")
@@ -188,7 +190,8 @@ class Uppaal:
                 ff.flush ()
             modelpath = self.__setupDirectory (tmpdir,model.model_text())
             binarypath = os.path.join (self._uppaalpath,"bin","verifyta")
-            params = [binarypath,"-s","-q", modelpath,querypath]
+            random_seed = self._random.getrandbits(32)
+            params = [binarypath,"-s","-q","-r",str(random_seed),modelpath,querypath]
             res = subprocess.run (params,cwd = tmpdir,capture_output=True)
             return pp (tmpdir,res.stdout)
         
