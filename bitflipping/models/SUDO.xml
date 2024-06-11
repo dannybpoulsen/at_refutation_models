@@ -42,7 +42,7 @@ int Location = 1;
 typedef int[0, 256] byte_t;
 typedef int[0, 8] bit_t;
 
-const byte_t nullChar = 0;
+const byte_t nullChar = @NULL@;
 const int AUTH_SUCCESS = 12300;
 const int AUTH_FAILURE = 10011;
 
@@ -52,8 +52,8 @@ bit_t currBit;
 
 // Arguments
 
-byte_t user_pass[size] = @USER_PASS@;
-byte_t stored_pass[size] = @STORED_PASS@;
+byte_t user_pass[size] = {@USER_PASS@, nullChar};
+byte_t stored_pass[size] = {@STORED_PASS@, nullChar};
 
 
 // Memory

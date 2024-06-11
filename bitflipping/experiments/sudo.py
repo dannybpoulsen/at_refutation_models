@@ -56,30 +56,30 @@ class Experiments:
     def runTobias (self):
         loc = self._locator.sublocator ("Tobias")
         sudo = bitflipping.models.SUDO_Model()
-        user_pass = "1245".encode('ascii')
+        user_passs = "1245".encode('ascii')
         stored_pass = list([l.encode('ascii') for l in["2245","6789","2289","1367"]])
         rows = []
         with bitflipping.locator.Progresser() as prog:
-            
-            for stored in stored_pass:
-                for flips in [1,2,3,4,5]:
-                    prog.message (f"Tobias: {user_pass.decode('ascii')} - {stored.decode('ascii')} - {flips}")   
-            
-                    sudo.set_user_password (user_pass+b'\0')
-                    sudo.set_stored_password (stored+b'\0')
-                    sudo.set_max_flips (flips)
-                    sudo.set_old_version ()
+            for user_pass in [user_passs,b'1355']:
+                for stored in stored_pass+[b'1457']:
+                    for flips in [1,3,5,10,20]:
+                        prog.message (f"Tobias: {user_pass.decode('ascii')} - {stored.decode('ascii')} - {flips}")   
 
-                    old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
-                    sudo.set_fixed_version ()
-                    new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
+                        sudo.set_user_password (user_pass)
+                        sudo.set_stored_password (stored)
+                        sudo.set_max_flips (flips)
+                        sudo.set_old_version ()
 
-                    old_data = ([1]*old_estim.getSatisRuns())+([0]*old_estim.getNSatisRuns())
-                    new_data = ([1]*new_estim.getSatisRuns())+([0]*new_estim.getNSatisRuns())
+                        old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
+                        sudo.set_fixed_version ()
+                        new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
 
-                    test = scipy.stats.ttest_ind(a=old_data,b=new_data,equal_var=False)
+                        old_data = ([1]*old_estim.getSatisRuns())+([0]*old_estim.getNSatisRuns())
+                        new_data = ([1]*new_estim.getSatisRuns())+([0]*new_estim.getNSatisRuns())
 
-                    rows.append ([flips,user_pass,stored,hamming(user_pass,stored),old_estim.getSatisRuns(),new_estim.getSatisRuns (),test.pvalue])
+                        test = scipy.stats.ttest_ind(a=old_data,b=new_data,equal_var=False)
+
+                        rows.append ([flips,user_pass,stored,hamming(user_pass,stored),old_estim.getSatisRuns(),new_estim.getSatisRuns (),test.pvalue])
             with loc.makeFile ("table.txt") as ff: 
                 ff.write (tabulate.tabulate (rows,
                                              headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
@@ -101,8 +101,8 @@ class Experiments:
                 rows = []
                 for i,stored in enumerate(stored_pass):
                     prog.message (f"HammingDist Fun: {flips} - {i} (flips - passwordnumber)")  
-                    sudo.set_user_password (user_pass+b'\0')
-                    sudo.set_stored_password (stored+b'\0')
+                    sudo.set_user_password (user_pass)
+                    sudo.set_stored_password (stored)
                     sudo.set_max_flips (flips)
 
                     sudo.set_old_version ()
@@ -162,7 +162,7 @@ class Experiments:
                 
     def run (self):
         self.runTobias ()
-        self.runHammingDistFun() 
+        #self.runHammingDistFun() 
 
 
 class GUI:
@@ -171,8 +171,8 @@ class GUI:
     
     def runGUI (self,user_pass = "1234".encode('ascii'),stored_pass = "2345".encode('ascii'),max_flips = 5,fixed_version=True):
         sudo = bitflipping.models.SUDO_Model()
-        sudo.set_user_password (user_pass+b'\0')
-        sudo.set_stored_password (stored_pass+b'\0')
+        sudo.set_user_password (user_pass)
+        sudo.set_stored_password (stored_pass)
         sudo.set_max_flips (max_flips)
         if fixed_version:
             sudo.set_fixed_version ()

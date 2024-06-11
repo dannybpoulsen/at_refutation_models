@@ -11,7 +11,8 @@ class SUDO_Model:
         self._user_pass = b'1234\0'
         self._stored_pass = b'2345\0'
         self._max_flips = 5
-        self._version = 0 
+        self._version = 0
+        self._null = 256
         
 
     def set_stored_password(self,password):
@@ -31,7 +32,7 @@ class SUDO_Model:
         self._max_flips = flips
         
     def model_text (self):
-        return self._base_model_text.replace("@SIZE@",str(len(self._user_pass))).replace("@USER_PASS@",f"{{ {','.join ([str(b) for b in self._user_pass]) } }}").replace("@STORED_PASS@",f"{{ {','.join ([str(b) for b in self._stored_pass]) } }}").replace("@MAX_FLIPS@",str(self._max_flips)).replace ("@VERSION@",str(self._version)).replace("@LIBPATH@",self._libpath)
+        return self._base_model_text.replace("@SIZE@",str(len(self._user_pass)+1)).replace("@USER_PASS@",f" {','.join ([str(b) for b in self._user_pass]) } ").replace("@STORED_PASS@",f" {','.join ([str(b) for b in self._stored_pass]) } ").replace("@MAX_FLIPS@",str(self._max_flips)).replace ("@VERSION@",str(self._version)).replace("@LIBPATH@",self._libpath).replace("@NULL@",str(self._null))
 
 
 
