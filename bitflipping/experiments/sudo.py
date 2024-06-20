@@ -60,9 +60,9 @@ class Experiments:
         stored_pass = list([l.encode('ascii') for l in["2245","6789","2289","1367"]])
         rows = []
         with bitflipping.locator.Progresser() as prog:
-            for user_pass in [user_passs,b'1355']:
-                for stored in stored_pass+[b'1457']:
-                    for flips in [1,3,5,10,20]:
+            for user_pass in [user_passs]:
+                for stored in stored_pass:
+                    for flips in range(1,6):
                         prog.message (f"Tobias: {user_pass.decode('ascii')} - {stored.decode('ascii')} - {flips}")   
 
                         sudo.set_user_password (user_pass)
@@ -70,9 +70,9 @@ class Experiments:
                         sudo.set_max_flips (flips)
                         sudo.set_old_version ()
 
-                        old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
+                        old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;1000000] (<> SUDO.Auth_Succ)")
                         sudo.set_fixed_version ()
-                        new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;100000] (<> SUDO.Auth_Succ)")
+                        new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;1000000] (<> SUDO.Auth_Succ)")
 
                         old_data = ([1]*old_estim.getSatisRuns())+([0]*old_estim.getNSatisRuns())
                         new_data = ([1]*new_estim.getSatisRuns())+([0]*new_estim.getNSatisRuns())
@@ -87,7 +87,43 @@ class Experiments:
 
             with loc.makeFile ("table.tex") as ff: 
                 self._output_tex_table(ff,rows)
-            
+
+    def runTobiasExtra (self):
+        loc = self._locator.sublocator ("TobiasExtra")
+        sudo = bitflipping.models.SUDO_Model()
+        user_passs = "1245".encode('ascii')
+        stored_pass = list([l.encode('ascii') for l in["2245","6789","2289","1367"]])
+        rows = []
+        with bitflipping.locator.Progresser() as prog:
+            for user_pass in [user_passs,b'1355']:
+                for stored in stored_pass+[b'1457']:
+                    for flips in [1,3,5,10,20]:
+                        prog.message (f"Tobias: {user_pass.decode('ascii')} - {stored.decode('ascii')} - {flips}")   
+
+                        sudo.set_user_password (user_pass)
+                        sudo.set_stored_password (stored)
+                        sudo.set_max_flips (flips)
+                        sudo.set_old_version ()
+
+                        old_estim = self._uppaal.runVerification (sudo,"Pr[<=500;1000000] (<> SUDO.Auth_Succ)")
+                        sudo.set_fixed_version ()
+                        new_estim = self._uppaal.runVerification (sudo,"Pr[<=500;1000000] (<> SUDO.Auth_Succ)")
+
+                        old_data = ([1]*old_estim.getSatisRuns())+([0]*old_estim.getNSatisRuns())
+                        new_data = ([1]*new_estim.getSatisRuns())+([0]*new_estim.getNSatisRuns())
+
+                        test = scipy.stats.ttest_ind(a=old_data,b=new_data,equal_var=False)
+
+                        rows.append ([flips,user_pass,stored,hamming(user_pass,stored),old_estim.getSatisRuns(),new_estim.getSatisRuns (),test.pvalue])
+            with loc.makeFile ("table.txt") as ff: 
+                ff.write (tabulate.tabulate (rows,
+                                             headers=["Max flips","User Password","Stored Pass","Hamming", "Old Succ","New Succ","PValue"])
+            )
+
+            with loc.makeFile ("table.tex") as ff: 
+                self._output_tex_table(ff,rows)
+
+                
     def runHammingDistFun(self):
         loc = self._locator.sublocator ("Hamming")
         sudo = bitflipping.models.SUDO_Model()
@@ -162,6 +198,7 @@ class Experiments:
                 
     def run (self):
         self.runTobias ()
+        self.runTobiasExtra ()
         #self.runHammingDistFun() 
 
 
